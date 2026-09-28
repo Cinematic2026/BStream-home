@@ -356,12 +356,27 @@
 
             <div class="menu-list">
                 <div class="menu-item-btn" onclick="toggleCategoryAccordion()">
-                    <span><iconify-icon icon="solar:widget-bold"></iconify-icon> Categorías (TMDB)</span>
+                    <span><iconify-icon icon="solar:widget-bold"></iconify-icon> Categorías</span>
                     <iconify-icon icon="solar:alt-arrow-down-bold"></iconify-icon>
                 </div>
                 <div class="sub-categories" id="subCategories"></div>
-
-                <a href="https://t.me/tu_grupo_telegram" target="_blank" class="menu-item-btn" style="text-decoration: none;">
+                
+                <a href="https://cinematic2026.github.io/BStream-series/" target="_blank" class="menu-item-btn" style="text-decoration: none;">
+                    <span><iconify-icon icon="solar:sendFile-bold" style="color: #0088cc;"></iconify-icon> Series </span>
+                    <iconify-icon icon="solar:tv-bold" style="color: #0088cc;"></iconify-icon>
+                </a>
+                
+                <a href="go:videos" target="_blank" class="menu-item-btn" style="text-decoration: none;">
+                    <span><iconify-icon icon="solar:sendFile-bold" style="color: #0088cc;"></iconify-icon> Adulto 18+ </span>
+                    <iconify-icon icon="solar:shield-warning-bold" style="color: #0088cc;"></iconify-icon>
+                </a>                
+                
+                <a href="https://cinematic2026.github.io/BStream-chat/" target="_blank" class="menu-item-btn" style="text-decoration: none;">
+                    <span><iconify-icon icon="solar:sendFile-bold" style="color: #0088cc;"></iconify-icon> Chatear </span>
+                    <iconify-icon icon="solar:chat-round-bold"></iconify-icon>
+                </a>
+                
+                <a href="https://t.me/bstream_hd" target="_blank" class="menu-item-btn" style="text-decoration: none;">
                     <span><iconify-icon icon="solar:sendFile-bold" style="color: #0088cc;"></iconify-icon> Únete a la Comunidad</span>
                     <iconify-icon icon="solar:link-circle-bold"></iconify-icon>
                 </a>
@@ -608,6 +623,89 @@
         const TMDB_HD_IMG_URL = "https://image.tmdb.org/t/p/original";
 
         const MY_CATALOG_INPUT = [
+             {
+                id: 1594914, // 
+                servers: [
+                    "https://vimeos.net/embed-i8002shi6lq3.html",
+                    "https://unlimplay.com/f/embed/movie/1594914"
+                ]
+            },
+             {
+                id: 1725116, // 
+                servers: [
+                    "https://vimeos.net/embed-vuizkuloy8aw.html",
+                    "https://unlimplay.com/f/embed/movie/1725116"
+                ]
+            },
+             {
+                id: 1318621, // 
+                servers: [
+                    "https://vimeos.net/embed-hav84e4y5ttr.html",
+                    "https://unlimplay.com/f/embed/movie/1318621"
+                ]
+            },
+             {
+                id: 1696068, // 
+                servers: [
+                    "https://vimeos.net/embed-7x01ikp9uppz.html",
+                    "https://unlimplay.com/f/embed/movie/1696068"
+                ]
+            },
+             {
+                id: 1227433, // 
+                servers: [
+                    "https://vimeos.net/embed-mcyp77iyg3n2.html",
+                    "https://unlimplay.com/f/embed/movie/1227433"
+                ]
+            },
+             {
+                id: 980431, // 
+                servers: [
+                    "https://vimeos.net/embed-bskcbkf2zfia.html",
+                    "https://unlimplay.com/f/embed/movie/980431"
+                ]
+            },
+             {
+                id: 1127384, // 
+                servers: [
+                    "https://vimeos.net/embed-qjwn0i52ac1h.html",
+                    "https://unlimplay.com/f/embed/movie/1127384"
+                ]
+            },
+             {
+                id: 687163, // 
+                servers: [
+                    "https://vimeos.net/embed-s0i9ofp6kpi3.html",
+                    "https://unlimplay.com/f/embed/movie/687163"
+                ]
+            },
+             {
+                id: 1500890, // 
+                servers: [
+                    "https://vimeos.net/embed-2x6dorq9pafk.html",
+                    "https://unlimplay.com/f/embed/movie/1500890"
+                ]
+            },
+             {
+                id: 1659155, // 
+                servers: [
+                    "https://vimeos.net/embed-bm7cr13apkcz.html",
+                    "https://unlimplay.com/f/embed/movie/1659155"
+                ]
+            },
+             {
+                id: 1424965, // 
+                servers: [
+                    "https://vimeos.net/embed-owspji0a2pgs.html",
+                    "https://unlimplay.com/f/embed/movie/1424965"
+                ]
+            },
+             {
+                id: 1492640, // 
+                servers: [                  
+                                    "https://unlimplay.com/f/embed/movie/1492640"
+                ]
+            },
              {
                 id: 1641629, // 
                 servers: [                  
@@ -1478,7 +1576,7 @@ function parseTMDBToNovaFormat(data, customServers = null) {
 
 async function initApp() {
     const catalogContainer = document.getElementById('customMoviesContainer');
-    catalogContainer.innerHTML = '<div class="loading-spinner" style="grid-column: 1/-1; color: var(--accent);">Conectando con TMDB...</div>';
+    catalogContainer.innerHTML = '<div class="loading-spinner" style="grid-column: 1/-1; color: var(--accent);">Conectando con Bstream...</div>';
 
     const moviePromises = MY_CATALOG_INPUT.map(item => fetchTMDBMovieData(item));
     const results = await Promise.all(moviePromises);
@@ -2063,4 +2161,4 @@ async function shareMovie() {
 }            
     </script>
 </body>
-                </html>
+    </html>
