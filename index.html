@@ -2342,7 +2342,11 @@ input:checked + .slider:before {
             }
         ];
 
-        /* --- INYECCIÓN DINÁMICA DE CSS PARA AVISO EXTERNO --- */
+         /* =======================================================
+   NOVA STREAM - CÓDIGO JS COMPLETO (CON HISTORY API NATIVO)
+   ======================================================= */
+
+/* --- INYECCIÓN DINÁMICA DE CSS PARA AVISOS Y LOADER --- */
 (function injectExternalStyles() {
     const style = document.createElement('style');
     style.textContent = `
@@ -2369,37 +2373,98 @@ input:checked + .slider:before {
             margin: 0;
             line-height: 1.35;
         }
+        /* --- ESTILOS DEL LOADER DEL REPRODUCTOR --- */
+        #novaPlayerLoader {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 10, 10, 0.92);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(6px);
+        }
+        .nova-spinner {
+            width: 45px;
+            height: 45px;
+            border: 4px solid rgba(229, 9, 20, 0.2);
+            border-top: 4px solid var(--danger, #e50914);
+            border-radius: 50%;
+            animation: novaSpin 0.8s linear infinite;
+        }
+        @keyframes novaSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .nova-loader-text {
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-align: center;
+            padding: 0 20px;
+        }
+        .nova-loader-sub {
+            color: var(--text-muted, #888);
+            font-size: 0.72rem;
+        }
     `;
     document.head.appendChild(style);
 })();
 
 /* --- ESTADO GLOBAL --- */
-        let FULL_MOVIES_DATA = [];
-        let EXTERNAL_SEARCH_RESULTS = []; 
-        let activeServers = [];
-        let currentServerIndex = 0;
-        let currentLoadedMovie = null;
-        let favorites = JSON.parse(localStorage.getItem('nova_favs')) || [];
+let FULL_MOVIES_DATA = [];
+let EXTERNAL_SEARCH_RESULTS = []; 
+let activeServers = [];
+let currentServerIndex = 0;
+let currentLoadedMovie = null;
+let favorites = JSON.parse(localStorage.getItem('nova_favs')) || [];
 
-        // Constantes Servidor Externo Unlimplay
-        const UNLIMPLAY_EMBED_BASE = "https://unlimplay.com/f/embed/movie/";
+const UNLIMPLAY_EMBED_BASE = "https://unlimplay.com/f/embed/movie/";
 
-        // Configuración Sandbox Persistente
-        let sandboxConfig = JSON.parse(localStorage.getItem('nova_sandbox')) || {
-            'allow-scripts': true,
-            'allow-same-origin': true,
-            'allow-popups': false, 
-            'allow-forms': false,
-            'allow-top-navigation': false
-        };
+let sandboxConfig = JSON.parse(localStorage.getItem('nova_sandbox')) || {
+    'allow-scripts': true,
+    'allow-same-origin': true,
+    'allow-popups': false, 
+    'allow-forms': false,
+    'allow-top-navigation': false
+};
 
-        const sandboxDefinitions = [
-            { id: 'allow-scripts', name: 'Permitir Scripts', desc: 'Necesario para la mayoría de reproductores (activar si el video no carga).', icon: 'solar:code-circle-bold' },
-            { id: 'allow-same-origin', name: 'Mismo Origen', desc: 'Permite al reproductor acceder a sus propios recursos internos.', icon: 'solar:server-square-bold' },
-            { id: 'allow-popups', name: 'Permitir Pop-ups', desc: 'Permite que el reproductor abra nuevas ventanas (desactiva para bloquear publicidad).', icon: 'solar:window-frame-bold' },
-            { id: 'allow-forms', name: 'Permitir Formularios', desc: 'Permite envíos de datos desde el iframe.', icon: 'solar:document-text-bold' },
-            { id: 'allow-top-navigation', name: 'Permitir Redirección', desc: 'Permite que el iframe cambie la página actual de NOVA.', icon: 'solar:forward-bold' }
-        ];
+const sandboxDefinitions = [
+    { id: 'allow-scripts', name: 'Permitir Scripts', desc: 'Necesario para la mayoría de reproductores (activar si el video no carga).', icon: 'solar:code-circle-bold' },
+    { id: 'allow-same-origin', name: 'Mismo Origen', desc: 'Permite al reproductor acceder a sus propios recursos internos.', icon: 'solar:server-square-bold' },
+    { id: 'allow-popups', name: 'Permitir Pop-ups', desc: 'Permite que el reproductor abra nuevas ventanas (desactiva para bloquear publicidad).', icon: 'solar:window-frame-bold' },
+    { id: 'allow-forms', name: 'Permitir Formularios', desc: 'Permite envíos de datos desde el iframe.', icon: 'solar:document-text-bold' },
+    { id: 'allow-top-navigation', name: 'Permitir Redirección', desc: 'Permite que el iframe cambie la página actual de NOVA.', icon: 'solar:forward-bold' }
+];
+
+/* =======================================================
+   UTILIDAD DE DETECCIÓN DE NOMBRES DE SERVIDOR
+   ======================================================= */
+function getServerDisplayName(url) {
+    if (!url) return "Servidor";
+    try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        
+        if (hostname.includes('unlimplay')) return 'UnlimPlay';
+        if (hostname.includes('vimeo')) return 'Vimeo';
+        if (hostname.includes('youtube')) return 'YouTube';
+        if (hostname.includes('streamtape')) return 'StreamTape';
+        if (hostname.includes('mixdrop')) return 'MixDrop';
+        if (hostname.includes('dood')) return 'DoodStream';
+        
+        const domainParts = hostname.replace('www.', '').split('.');
+        if (domainParts.length > 0) {
+            return domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1);
+        }
+    } catch (e) {
+        console.error("Error obteniendo el nombre del servidor:", e);
+    }
+    return "Servidor Externo";
+}
 
 /* =======================================================
    INTEGRACIÓN CON LA API DE TMDB
@@ -2410,11 +2475,7 @@ async function fetchTMDBMovieData(item) {
         const res = await fetch(url);
         const data = await res.json();
 
-        if (!res.ok || data.success === false) {
-            console.error(`Error TMDB (ID ${item.id})`);
-            return null;
-        }
-
+        if (!res.ok || data.success === false) return null;
         return parseTMDBToNovaFormat(data, item.servers);
     } catch (err) {
         console.error(`Error crítico procesando ID ${item.id}:`, err);
@@ -2422,34 +2483,27 @@ async function fetchTMDBMovieData(item) {
     }
 }
 
-/* --- PARSER CENTRALIZADO PARA TMDB --- */
 function parseTMDBToNovaFormat(data, customServers = null) {
     const formatMoney = (amount) => amount ? '$' + amount.toLocaleString('en-US') : 'N/A';
-    
-    // 1. Categoría Principal
     const mainCategory = (data.genres && data.genres.length > 0) ? data.genres[0].name : "Sin Categoría";
 
-    // 2. Extraer Director
     let directorName = 'Desconocido';
     if (data.credits && data.credits.crew) {
         const dirObj = data.credits.crew.find(c => c.job === 'Director');
         if (dirObj) directorName = dirObj.name;
     }
 
-    // 3. Extraer Tráiler en YouTube
     let trailerKey = null;
     if (data.videos && data.videos.results) {
         const trailerObj = data.videos.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')) || data.videos.results[0];
         if (trailerObj) trailerKey = trailerObj.key;
     }
 
-    // 4. Extraer Casas Productoras (Compañías)
     const companies = (data.production_companies || []).map(c => ({
         name: c.name,
         logo: c.logo_path ? `${TMDB_IMG_URL}${c.logo_path}` : null
     }));
 
-    // Determinar los servidores
     const isExternal = !customServers;
     const servers = customServers || [`${UNLIMPLAY_EMBED_BASE}${data.id}`];
 
@@ -2491,7 +2545,7 @@ async function initApp() {
     FULL_MOVIES_DATA = results.filter(movie => movie !== null);
 
     if (FULL_MOVIES_DATA.length === 0) {
-        catalogContainer.innerHTML = '<div class="loading-spinner" style="grid-column: 1/-1; color: var(--danger);">Error al conectar al servidor. intentalo de nuevo mas tarde...</div>';
+        catalogContainer.innerHTML = '<div class="loading-spinner" style="grid-column: 1/-1; color: var(--danger);">Error al conectar al servidor. Inténtalo de nuevo más tarde...</div>';
         return;
     }
 
@@ -2503,7 +2557,6 @@ async function initApp() {
     initSandboxUI();
 }
 
-/* --- ACCORDEÓN DE CATEGORÍAS DINÁMICO --- */
 function buildCategoriesAccordion() {
     const categories = [...new Set(FULL_MOVIES_DATA.map(m => m.category))].sort();
     const container = document.getElementById('subCategories');
@@ -2518,7 +2571,6 @@ function buildCategoriesAccordion() {
     });
 }
 
-/* --- ACTORES DESTACADOS DINÁMICOS --- */
 function renderDynamicActors() {
     const container = document.getElementById('topActorsContainer');
     container.innerHTML = '';
@@ -2542,32 +2594,40 @@ function renderDynamicActors() {
 }
 
 /* =======================================================
-   SISTEMA DE NAVEGACIÓN Y EVENTOS
+   SISTEMA DE NAVEGACIÓN Y HISTORY API NATIVO
    ======================================================= */
 window.addEventListener('popstate', (event) => {
+    const state = event.state || { view: 'home' };
+
     const playerModal = document.getElementById('playerModal');
     const trailerModal = document.getElementById('trailerModal');
     const sideMenu = document.getElementById('sideMenu');
     const sandboxDrawer = document.getElementById('sandboxDrawer');
 
-    if (playerModal.classList.contains('active')) { closePlayer(false); return; }
-    if (trailerModal.classList.contains('active')) { closeTrailerModal(false); return; }
-    if (sideMenu.classList.contains('open')) { sideMenu.classList.remove('open'); return; }
-    if (sandboxDrawer.classList.contains('open')) { closeSandboxDrawer(); return; }
+    // Cerrar paneles flotantes si estuvieran abiertos
+    if (sideMenu.classList.contains('open')) sideMenu.classList.remove('open');
+    if (sandboxDrawer.classList.contains('open')) sandboxDrawer.classList.remove('open');
 
-    const viewTarget = (event.state && event.state.view) ? event.state.view : 'home';
-    renderView(viewTarget, false);
+    // Sintonizar modales según el estado del historial
+    if (state.modal !== 'player' && playerModal.classList.contains('active')) {
+        closePlayer(false);
+    }
+    if (state.modal !== 'trailer' && trailerModal.classList.contains('active')) {
+        closeTrailerModal(false);
+    }
 
-    if (event.state && event.state.movieId) {
-        openMovieDetail(event.state.movieId);
+    // Sintonizar vistas y detalles de películas
+    renderView(state.view || 'home', false);
+    if (state.movieId) {
+        openMovieDetail(state.movieId, false); // No empujar estado al restaurar
     }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    window.history.replaceState({ view: 'home' }, '');
+    // Inicializar estado base de la página
+    window.history.replaceState({ view: 'home', movieId: null, modal: null }, '', '');
     initApp();
     
-    // Eventos del Buscador Avanzado
     document.getElementById('searchInput').addEventListener('input', runAdvancedSearch);
     document.getElementById('searchCategory').addEventListener('change', runAdvancedSearch);
     document.getElementById('searchYear').addEventListener('change', runAdvancedSearch);
@@ -2575,7 +2635,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('serverToggleBtn').addEventListener('click', switchNextServer);
 });
 
-/* --- HERO HOME --- */
 function renderHero(movie) {
     currentLoadedMovie = movie;
     document.getElementById('heroBanner').style.backgroundImage = `url(${movie.backdrop})`;
@@ -2584,7 +2643,7 @@ function renderHero(movie) {
     document.getElementById('heroRating').innerText = movie.rating;
     document.getElementById('heroYear').innerText = movie.year;
     document.getElementById('heroOverview').innerText = movie.overview;
-    document.getElementById('heroDetailsBtn').onclick = () => openMovieDetail(movie.id);
+    document.getElementById('heroDetailsBtn').onclick = () => openMovieDetail(movie.id, true);
     
     const trailerBtn = document.getElementById('heroTrailerBtn');
     if (movie.trailerKey) {
@@ -2599,7 +2658,6 @@ function renderHero(movie) {
     favBtn.onclick = () => toggleFavorite(movie, favBtn);
 }
 
-/* --- CATÁLOGO EN GRILLA --- */
 function renderCatalogGrid(movies, containerId = 'customMoviesContainer') {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
@@ -2618,15 +2676,14 @@ function buildCard(movie) {
             </div>
         </div>
     `;
-    card.onclick = () => openMovieDetail(movie.id);
+    card.onclick = () => openMovieDetail(movie.id, true);
     return card;
 }
 
-/* --- VISTA DE DETALLES MEJORADA --- */
-async function openMovieDetail(movieId) {
+/* --- VISTA DE DETALLES CON CONTROL DE HISTORIAL --- */
+async function openMovieDetail(movieId, pushHistory = true) {
     let movie = FULL_MOVIES_DATA.find(m => m.id === movieId) || EXTERNAL_SEARCH_RESULTS.find(m => m.id === movieId);
 
-    // Si es una película externa que aún no tiene su información completa (créditos, galería, etc.)
     if (!movie || !movie.cast || movie.cast.length === 0) {
         const url = `${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}&language=es-MX&append_to_response=credits,images,videos&include_image_language=es,null`;
         try {
@@ -2634,7 +2691,6 @@ async function openMovieDetail(movieId) {
             const data = await res.json();
             if (res.ok && data.id) {
                 movie = parseTMDBToNovaFormat(data);
-                // Guardar en caché temporal para no pedir de nuevo la API
                 const index = EXTERNAL_SEARCH_RESULTS.findIndex(m => m.id === movieId);
                 if (index !== -1) EXTERNAL_SEARCH_RESULTS[index] = movie;
             }
@@ -2646,7 +2702,12 @@ async function openMovieDetail(movieId) {
     if (!movie) return;
     currentLoadedMovie = movie;
     renderMovieDetailsUI(movie);
-    navigateTo('details', { movieId: movie.id });
+
+    if (pushHistory) {
+        navigateTo('details', { movieId: movie.id });
+    } else {
+        renderView('details', false);
+    }
 }
 
 function renderMovieDetailsUI(movie) {
@@ -2667,7 +2728,6 @@ function renderMovieDetailsUI(movie) {
     document.getElementById('metaBudget').innerText = movie.budget;
     document.getElementById('metaRevenue').innerText = movie.revenue;
 
-    // --- AVISO DE SERVIDOR EXTERNO ---
     let warningBox = document.getElementById('novaExternalWarningBox');
     if (!warningBox) {
         warningBox = document.createElement('div');
@@ -2685,7 +2745,6 @@ function renderMovieDetailsUI(movie) {
 
     warningBox.style.display = movie.isExternal ? 'flex' : 'none';
 
-    // Configurar botón de tráiler en detalles
     const detailsTrailerBtn = document.getElementById('detailsTrailerBtn');
     if (movie.trailerKey) {
         detailsTrailerBtn.style.display = 'inline-flex';
@@ -2694,7 +2753,6 @@ function renderMovieDetailsUI(movie) {
         detailsTrailerBtn.style.display = 'none';
     }
 
-    // Carrusel de Casas Productoras
     const compContainer = document.getElementById('companiesContainer');
     compContainer.innerHTML = '';
     if (movie.companies && movie.companies.length > 0) {
@@ -2713,7 +2771,6 @@ function renderMovieDetailsUI(movie) {
         document.getElementById('companiesSection').style.display = 'none';
     }
 
-    // Reparto
     const castContainer = document.getElementById('castContainer');
     castContainer.innerHTML = '';
     (movie.cast || []).forEach(actor => {
@@ -2727,7 +2784,6 @@ function renderMovieDetailsUI(movie) {
         castContainer.appendChild(item);
     });
 
-    // Galería
     const mediaContainer = document.getElementById('mediaContainer');
     mediaContainer.innerHTML = '';
     (movie.gallery || []).forEach(url => {
@@ -2760,19 +2816,27 @@ function renderRecommendations(currentMovie) {
                 <div style="font-size: 0.75rem; color: var(--star-gold);"><iconify-icon icon="solar:star-bold"></iconify-icon> ${data.rating}</div>
             </div>
         `;
-        el.onclick = () => openMovieDetail(data.id);
+        el.onclick = () => openMovieDetail(data.id, true);
         container.appendChild(el);
     });
 }
 
-/* --- MODAL DE TRÁILER EN YOUTUBE (GLASSMORPHISM) --- */
+/* --- MODAL TRÁILER (CON HISTORIAL INTEGRADO) --- */
 function openTrailerModal(youtubeKey, title) {
     const modal = document.getElementById('trailerModal');
     const iframe = document.getElementById('trailerIframe');
     document.getElementById('trailerModalTitle').innerHTML = `<iconify-icon icon="solar:videocamera-bold" style="color: var(--danger);"></iconify-icon> Tráiler: ${title}`;
-    iframe.src = `https://www.youtube-nocookie.com/embed/${youtubeKey}?autoplay=1&rel=0`;
+    
+    iframe.src = 'about:blank';
+    requestAnimationFrame(() => {
+        iframe.src = `https://www.youtube-nocookie.com/embed/${youtubeKey}?autoplay=1&rel=0`;
+    });
+
     modal.classList.add('active');
-    window.history.pushState({ modal: 'trailer' }, '');
+    
+    // Empujar estado actual sumando el modal activo
+    const currentState = window.history.state || { view: 'home' };
+    window.history.pushState({ ...currentState, modal: 'trailer' }, '', '');
 }
 
 function closeTrailerModal(triggerHistoryBack = true) {
@@ -2780,28 +2844,23 @@ function closeTrailerModal(triggerHistoryBack = true) {
     modal.classList.remove('active');
     
     const iframe = document.getElementById('trailerIframe');
-    if (iframe) {
-        const newIframe = iframe.cloneNode(true);
-        newIframe.src = '';
-        iframe.parentNode.replaceChild(newIframe, iframe);
-    }
+    if (iframe) iframe.src = 'about:blank';
     
-    if (triggerHistoryBack && history.state && history.state.modal === 'trailer') {
+    if (triggerHistoryBack && window.history.state && window.history.state.modal === 'trailer') {
         window.history.back();
     }
 }
 
-/* --- FILTRAR POR GÉNERO (CATEGORÍA DESDE MENU) --- */
 function filterByGenre(categoryName) {
     if (document.getElementById('sideMenu').classList.contains('open')) toggleSideMenu();
     document.getElementById('categoryTitle').innerText = `Categoría: ${categoryName}`;
     const filtered = FULL_MOVIES_DATA.filter(m => m.category === categoryName);
     renderCatalogGrid(filtered, 'categoryGrid');
-    navigateTo('category');
+    navigateTo('category', { category: categoryName });
 }
 
 /* =======================================================
-   BUSCADOR AVANZADO (TÍTULO LOCAL / TMDB, CATEGORÍA, AÑO)
+   BUSCADOR AVANZADO
    ======================================================= */
 function populateSearchFilters() {
     const catSelect = document.getElementById('searchCategory');
@@ -2831,7 +2890,6 @@ async function runAdvancedSearch() {
     const qYear = document.getElementById('searchYear').value;
     const container = document.getElementById('searchResultsContainer');
 
-    // 1. Filtrar primero dentro del catálogo local
     const localResults = FULL_MOVIES_DATA.filter(m => {
         const matchTitle = m.title.toLowerCase().includes(qTitle);
         const matchCat = qCat === "" || m.category === qCat;
@@ -2849,7 +2907,6 @@ async function runAdvancedSearch() {
         return;
     }
 
-    // 2. Buscar en TMDB
     container.innerHTML = '<p style="color: var(--accent); grid-column: 1/-1;">Buscando en la base de datos global de TMDB...</p>';
 
     clearTimeout(searchDebounceTimeout);
@@ -2895,22 +2952,61 @@ async function runAdvancedSearch() {
 }
 
 /* =======================================================
-   REPRODUCTOR Y SANDBOX AVANZADO
+   REPRODUCTOR MULTI-SERVIDOR (CON HISTORIAL INTEGRADO)
    ======================================================= */
 function startPlayer(servers) {
     if (!servers || servers.length === 0) return;
     activeServers = servers;
     currentServerIndex = 0;
+    
+    const playerModal = document.getElementById('playerModal');
+    playerModal.classList.add('active');
+
     loadIframeServer(activeServers[currentServerIndex]);
-    document.getElementById('playerModal').classList.add('active');
-    window.history.pushState({ modal: 'player' }, '');
+
+    // Empujar estado actual sumando el reproductor activo al historial
+    const currentState = window.history.state || { view: 'home' };
+    window.history.pushState({ ...currentState, modal: 'player' }, '', '');
 }
 
 function loadIframeServer(url) {
     const iframe = document.getElementById('videoIframe');
+    const iframeParent = iframe.parentNode;
     document.getElementById('currentServerNum').innerText = currentServerIndex + 1;
+    
+    const serverName = getServerDisplayName(url);
+
+    let loader = document.getElementById('novaPlayerLoader');
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'novaPlayerLoader';
+        loader.innerHTML = `
+            <div class="nova-spinner"></div>
+            <div class="nova-loader-text" id="novaLoaderMsg">Conectando con ${serverName}...</div>
+            <div class="nova-loader-sub">Esto puede tardar unos segundos dependiendo del servidor</div>
+        `;
+        iframeParent.style.position = 'relative';
+        iframeParent.appendChild(loader);
+    } else {
+        const msgEl = document.getElementById('novaLoaderMsg');
+        if (msgEl) msgEl.innerText = `Conectando con ${serverName}...`;
+        loader.style.opacity = '1';
+        loader.style.display = 'flex';
+    }
+
+    iframe.src = 'about:blank';
     applySandboxToIframe(iframe);
-    iframe.src = url;
+
+    iframe.onload = () => {
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => { loader.style.display = 'none'; }, 300);
+        }
+    };
+
+    requestAnimationFrame(() => {
+        iframe.src = url;
+    });
 }
 
 function switchNextServer() {
@@ -2922,14 +3018,15 @@ function switchNextServer() {
 function closePlayer(triggerHistoryBack = true) {
     document.getElementById('playerModal').classList.remove('active');
     
+    const loader = document.getElementById('novaPlayerLoader');
+    if (loader) loader.style.display = 'none';
+
     const iframe = document.getElementById('videoIframe');
     if (iframe) {
-        const newIframe = iframe.cloneNode(true);
-        newIframe.src = '';
-        iframe.parentNode.replaceChild(newIframe, iframe);
+        iframe.src = 'about:blank';
     }
     
-    if (triggerHistoryBack && history.state && history.state.modal === 'player') {
+    if (triggerHistoryBack && window.history.state && window.history.state.modal === 'player') {
         window.history.back();
     }
 }
@@ -2972,7 +3069,7 @@ function toggleSandboxOption(optionId) {
     else wrap.classList.remove('active-item');
 
     const iframe = document.getElementById('videoIframe');
-    if (iframe && iframe.src) {
+    if (iframe && iframe.src && iframe.src !== 'about:blank') {
         applySandboxToIframe(iframe);
         const currentSrc = iframe.src;
         iframe.src = currentSrc;
@@ -3010,7 +3107,7 @@ function updateSandboxButtonVisual() {
 function openSandboxDrawer() { document.getElementById('sandboxDrawer').classList.add('open'); }
 function closeSandboxDrawer() { document.getElementById('sandboxDrawer').classList.remove('open'); }
 
-/* --- FAVORITOS Y NAVEGACIÓN --- */
+/* --- FAVORITOS Y GESTIÓN DE VISTAS --- */
 function toggleFavorite(movie, btnEl) {
     const idx = favorites.findIndex(f => f.id === movie.id);
     if (idx > -1) favorites.splice(idx, 1);
@@ -3038,7 +3135,8 @@ function renderFavorites() {
 }
 
 function navigateTo(viewName, stateData = {}) {
-    window.history.pushState({ view: viewName, ...stateData }, '');
+    const fullState = { view: viewName, movieId: stateData.movieId || null, modal: null, ...stateData };
+    window.history.pushState(fullState, '', '');
     renderView(viewName, true);
 }
 
@@ -3065,7 +3163,7 @@ async function shareMovie() {
         if (navigator.share) await navigator.share(shareData);
         else { await navigator.clipboard.writeText(window.location.href); alert('¡Enlace copiado!'); }
     } catch (err) { console.log('Error al compartir:', err); }
-}            
+}           
     </script>
 </body>
     </html>
